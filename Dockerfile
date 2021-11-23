@@ -1,0 +1,13 @@
+FROM php:8.0-cli-alpine
+
+RUN docker-php-ext-install sockets
+
+ENV BASE_WEB_DIR "/var/www/html"
+
+COPY main.php /jojo/jojo-server
+COPY 404.html /jojo/404.html
+RUN chmod +x /jojo/jojo-server && mkdir -p /var/www/html
+
+EXPOSE 8000
+
+ENTRYPOINT ["php", "/jojo/jojo-server"]

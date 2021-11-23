@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 $interface = '0.0.0.0';
 $port = 8000;
+$webDir =  empty(getenv('BASE_WEB_DIR')) === false ?  getenv('BASE_WEB_DIR') : __DIR__;
 
 // Properly configuring server MIME types:
 // https://developer.mozilla.org/en-US/docs/Learn/Server-side/Configuring_server_MIME_types
@@ -50,8 +51,8 @@ $handleFileResponse = function (string $requestedFile) use ($contentTypes) {
     return ['200 OK', ['Content-Type' => fileMimeDetector($requestedFile, $contentTypes)], $body];
 };
 
-$handleNotFoundResponse = function () {
-    $body = file_get_contents('404.html');
+$handleNotFoundResponse = function () use ($webDir) {
+    $body = file_get_contents(__DIR__.'/404.html');
     return [
         '404 Not Found',
         ['Content-Type' => 'text/html'],
@@ -69,7 +70,8 @@ while ($conn = socket_accept($sock)) {
     }
     $parsedData = explode("\r", $request);
     $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
-    if (file_exists('./'.$path) === false) {
+    echo $webDir.$path;
+    if (!is_file($webDir.$path)) {
         list($code, $headers, $body) = $handleNotFoundResponse();
         $headers += $defaultHeaders;
         if (!isset($headers['Content-Length'])) {
@@ -89,7 +91,7 @@ while ($conn = socket_accept($sock)) {
         );
         socket_close($conn);
     } else {
-        list($code, $headers, $body) = $handleFileResponse('./' . $path);
+        list($code, $headers, $body) = $handleFileResponse($webDir.$path);
         $headers += $defaultHeaders;
         if (!isset($headers['Content-Length'])) {
             $headers['Content-Length'] = strlen($body);
