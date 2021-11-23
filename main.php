@@ -1,3 +1,4 @@
+#!/usr/bin/php
 <?php
 
 declare(strict_types=1);
@@ -50,10 +51,11 @@ $handleFileResponse = function (string $requestedFile) use ($contentTypes) {
 };
 
 $handleNotFoundResponse = function () {
+    $body = file_get_contents('404.html');
     return [
         '404 Not Found',
         ['Content-Type' => 'text/html'],
-        "<html lang='fa' dir='rtl'><head><title>یافت نشد</title></head><body><h3>همچین فایلی وجود ندارد</h3></body></html>"
+        $body
     ];
 };
 
@@ -66,8 +68,9 @@ while ($conn = socket_accept($sock)) {
         $request .= socket_read($conn, 1024);
     }
     $parsedData = explode("\r", $request);
-    $requestedFile = basename(explode(" ", $parsedData[0])[1]);
-    if (file_exists($requestedFile) === false) {
+    $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
+    print_r($path);
+    if (file_exists('./'.$path) === false) {
         list($code, $headers, $body) = $handleNotFoundResponse();
         $headers += $defaultHeaders;
         if (!isset($headers['Content-Length'])) {
@@ -87,7 +90,7 @@ while ($conn = socket_accept($sock)) {
         );
         socket_close($conn);
     } else {
-        list($code, $headers, $body) = $handleFileResponse($requestedFile);
+        list($code, $headers, $body) = $handleFileResponse('./' . $path);
         $headers += $defaultHeaders;
         if (!isset($headers['Content-Length'])) {
             $headers['Content-Length'] = strlen($body);
