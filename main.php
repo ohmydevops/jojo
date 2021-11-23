@@ -69,7 +69,6 @@ while ($conn = socket_accept($sock)) {
     }
     $parsedData = explode("\r", $request);
     $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
-    print_r($path);
     if (file_exists('./'.$path) === false) {
         list($code, $headers, $body) = $handleNotFoundResponse();
         $headers += $defaultHeaders;
