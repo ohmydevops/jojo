@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use JetBrains\PhpStorm\NoReturn;
-
 $interface = '0.0.0.0';
 $port = 8000;
 
