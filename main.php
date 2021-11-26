@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 $interface = '0.0.0.0';
 $port = 8000;
-$webDir =  empty(getenv('BASE_WEB_DIR')) === false ?  getenv('BASE_WEB_DIR') : __DIR__;
+$webDir = empty(getenv('BASE_WEB_DIR')) === false ? getenv('BASE_WEB_DIR') : __DIR__;
 
 // Properly configuring server MIME types:
 // https://developer.mozilla.org/en-US/docs/Learn/Server-side/Configuring_server_MIME_types
@@ -25,6 +25,12 @@ function fileMimeDetector(string $requestedFile, array $contentTypes): string
     return $contentTypes[$fileExtension];
 }
 
+function cliLog(string $message): void
+{
+    printf($message);
+    echo PHP_EOL;
+}
+
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 if ($sock === false) {
     echo 'Failed to create socket : ' . socket_strerror(socket_last_error()) . PHP_EOL;
@@ -40,6 +46,7 @@ if ($isBind === false) {
     echo 'Failed to bind socket : ', socket_strerror(socket_last_error()), PHP_EOL;
     exit();
 }
+
 $isListen = socket_listen($sock, SOMAXCONN);
 if ($isListen === false) {
     echo 'Failed to listen to socket : ', socket_strerror(socket_last_error()), PHP_EOL;
@@ -52,7 +59,7 @@ $handleFileResponse = function (string $requestedFile) use ($contentTypes) {
 };
 
 $handleNotFoundResponse = function () use ($webDir) {
-    $body = file_get_contents(__DIR__.'/404.html');
+    $body = file_get_contents(__DIR__ . '/404.html');
     return [
         '404 Not Found',
         ['Content-Type' => 'text/html'],
@@ -60,55 +67,62 @@ $handleNotFoundResponse = function () use ($webDir) {
     ];
 };
 
+$parentPID = (string)posix_getpid();
+echo "Server is running on $interface:$port and PID: $parentPID" . PHP_EOL;
 
-echo "Server is running on $interface:$port" . PHP_EOL;
-
-while ($conn = socket_accept($sock)) {
-    $request = '';
-    while (!str_ends_with($request, "\r\n\r\n")) {
-        $request .= socket_read($conn, 1024);
-    }
-    $parsedData = explode("\r", $request);
-    $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
-    echo $webDir.$path;
-    if (!is_file($webDir.$path)) {
-        list($code, $headers, $body) = $handleNotFoundResponse();
-        $headers += $defaultHeaders;
-        if (!isset($headers['Content-Length'])) {
-            $headers['Content-Length'] = strlen($body);
+while ($client = socket_accept($sock)) {
+    $pid = pcntl_fork();
+    if ($pid === -1) {
+        exit("Error forking...\n");
+    } elseif ($pid === 0) {
+        $request = '';
+        while (!str_ends_with($request, "\r\n\r\n")) {
+            $request .= socket_read($client, 1024);
         }
-        $header = '';
-        foreach ($headers as $k => $v) {
-            $header .= $k . ': ' . $v . "\r\n";
+        $parsedData = explode("\r", $request);
+        $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
+        if (!is_file($webDir . $path)) {
+            list($code, $headers, $body) = $handleNotFoundResponse();
+            $headers += $defaultHeaders;
+            if (!isset($headers['Content-Length'])) {
+                $headers['Content-Length'] = strlen($body);
+            }
+            $header = '';
+            foreach ($headers as $k => $v) {
+                $header .= $k . ': ' . $v . "\r\n";
+            }
+            socket_write(
+                $client,
+                implode("\r\n", array(
+                    'HTTP/1.1 ' . $code,
+                    $header,
+                    $body
+                ))
+            );
+            socket_close($client);
+        } else {
+            list($code, $headers, $body) = $handleFileResponse($webDir . $path);
+            $headers += $defaultHeaders;
+            if (!isset($headers['Content-Length'])) {
+                $headers['Content-Length'] = strlen($body);
+            }
+            $header = '';
+            foreach ($headers as $k => $v) {
+                $header .= $k . ': ' . $v . "\r\n";
+            }
+            socket_write(
+                $client,
+                implode("\r\n", array(
+                    'HTTP/1.1 ' . $code,
+                    $header,
+                    $body
+                ))
+            );
+            socket_close($client);
         }
-        socket_write(
-            $conn,
-            implode("\r\n", array(
-                'HTTP/1.1 ' . $code,
-                $header,
-                $body
-            ))
-        );
-        socket_close($conn);
+        cliLog($code . ' ' . $parsedData[0]);
+        exit();
     } else {
-        list($code, $headers, $body) = $handleFileResponse($webDir.$path);
-        $headers += $defaultHeaders;
-        if (!isset($headers['Content-Length'])) {
-            $headers['Content-Length'] = strlen($body);
-        }
-        $header = '';
-        foreach ($headers as $k => $v) {
-            $header .= $k . ': ' . $v . "\r\n";
-        }
-        socket_write(
-            $conn,
-            implode("\r\n", array(
-                'HTTP/1.1 ' . $code,
-                $header,
-                $body
-            ))
-        );
-        socket_close($conn);
+        $pid = pcntl_wait($status, WNOHANG);
     }
-    echo $code . ' ' . $parsedData[0] . PHP_EOL;
 }
