@@ -2,7 +2,7 @@ FROM php:8.0-cli-alpine
 
 RUN docker-php-ext-install sockets
 
-ENV BASE_WEB_DIR "/var/www/html"
+#ENV BASE_WEB_DIR "/jojo/"
 
 COPY main.php /jojo/jojo-server
 COPY 404.html /jojo/404.html
