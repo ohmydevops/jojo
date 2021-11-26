@@ -75,7 +75,7 @@ $handleFileResponse = function (string $requestedFile) use ($contentTypes) {
 };
 
 $handleNotFoundResponse = function () use ($webDir) {
-    $body = file_get_contents(__DIR__ . '/404.html');
+    $body = '<!DOCTYPE html><html dir="rtl" lang="fa"><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1.0" name="viewport"><meta content="ie=edge" http-equiv="X-UA-Compatible"><title>پیدا نشد</title></head><body><p>فایل پیدا نشد</p></body></html>';
     return [
         '404 Not Found',
         ['Content-Type' => 'text/html'],
