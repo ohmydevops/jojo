@@ -19,7 +19,7 @@
 ## برنامه‌های پیش‌رو
 #### V1
 - [x] Serve basic web files  (html, css, js)
-- [ ] Serve basic static files (images, videos, sounds)
+- [x] Serve basic static files (images, videos, sounds)
 - [x] Support 200 status code
 - [x] Support 404 status code
 - [x] Support GET method
