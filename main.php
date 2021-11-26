@@ -20,6 +20,15 @@ $contentTypes = [
     'png' => 'image/png',
     'svg' => 'image/svg+xml',
     'webp' => 'image/webp',
+    'ogg' => 'audio/ogg',
+    'oga' => 'audio/ogg',
+    'mp3' => 'audio/mpeg3',
+    'wav' => 'audio/wav',
+    'mp4' => 'video/mp4',
+    '.3gp' => 'video/3gpp',
+    'flv' => 'video/x-flv',
+    'mov' => 'video/quicktime',
+    'mpg4' => 'video/mp4',
 ];
 
 $defaultHeaders = [
