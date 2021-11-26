@@ -47,3 +47,5 @@ docker run --name jojo --init --rm -v /home/user/website:/jojo -p 80:8000 ohmyde
 - [ ] Profiling configuration
 #### V3
 - [ ] [Common log format](https://en.wikipedia.org/wiki/Common_Log_Format)
+#### V4
+- [ ] Directory index
