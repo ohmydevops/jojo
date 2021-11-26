@@ -6,7 +6,7 @@ ENV BASE_WEB_DIR "/var/www/html"
 
 COPY main.php /jojo/jojo-server
 COPY 404.html /jojo/404.html
-RUN chmod +x /jojo/jojo-server && mkdir -p /var/www/html
+RUN chmod +x /jojo/jojo-server
 
 EXPOSE 8000
 
