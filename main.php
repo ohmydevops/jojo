@@ -12,7 +12,14 @@ $webDir = empty(getenv('BASE_WEB_DIR')) === false ? getenv('BASE_WEB_DIR') : __D
 $contentTypes = [
     'html' => 'text/html;charset=utf-8',
     'css' => 'text/css',
-    'js' => 'text/javascript'
+    'js' => 'text/javascript',
+    'apng' => 'image/apng',
+    'gif' => 'image/gif',
+    'jpeg' => 'image/jpeg',
+    'jpg' => 'image/jpeg',
+    'png' => 'image/png',
+    'svg' => 'image/svg+xml',
+    'webp' => 'image/webp',
 ];
 
 $defaultHeaders = [
