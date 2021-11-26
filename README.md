@@ -25,6 +25,7 @@
 - [x] Handle requests in blocking-mode
 - [x] Dockerise (upload images in docker hub)
 - [x] Can config root directory with ENV
+- [ ] Before release v1 -> make code cleaner!
 #### V2
 - [ ] Handle requests in concurrent-mode (multi-process)
 - [ ] Profiling configuration
