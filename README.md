@@ -41,10 +41,8 @@ docker run --name jojo --init --rm -v /home/user/website:/jojo -p 80:8000 ohmyde
 - [x] Handle requests in blocking-mode
 - [x] Dockerise (upload images in docker hub)
 - [x] Can config root directory with ENV
-- [ ] Before release v1 -> make code cleaner!
 #### V2
 - [ ] Handle requests in concurrent-mode (multi-process)
-- [ ] Profiling configuration
 #### V3
 - [ ] [Common log format](https://en.wikipedia.org/wiki/Common_Log_Format)
 #### V4
