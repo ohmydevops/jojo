@@ -5,8 +5,10 @@ declare(strict_types=1);
 
 $interface = '0.0.0.0';
 $port = 8000;
-$webDir = empty(getenv('BASE_WEB_DIR')) === false ? getenv('BASE_WEB_DIR') : __DIR__;
-
+$webDir = empty(getenv('BASE_WEB_DIR')) ? __DIR__ : getenv('BASE_WEB_DIR');
+$defaultHeaders = [
+    'Server' => 'jojo'
+];
 // Properly configuring server MIME types:
 // https://developer.mozilla.org/en-US/docs/Learn/Server-side/Configuring_server_MIME_types
 $contentTypes = [
@@ -31,10 +33,6 @@ $contentTypes = [
     'mpg4' => 'video/mp4',
 ];
 
-$defaultHeaders = [
-    'Server' => 'PHP ' . phpversion()
-];
-
 function fileMimeDetector(string $requestedFile, array $contentTypes): string
 {
     $fileExtension = pathinfo($requestedFile, PATHINFO_EXTENSION);
@@ -43,8 +41,7 @@ function fileMimeDetector(string $requestedFile, array $contentTypes): string
 
 function cliLog(string $message): void
 {
-    printf($message);
-    echo PHP_EOL;
+    echo $message . PHP_EOL;
 }
 
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -69,12 +66,12 @@ if ($isListen === false) {
     exit();
 }
 
-$handleFileResponse = function (string $requestedFile) use ($contentTypes) {
+$handleFileResponse = function (string $requestedFile) use ($contentTypes): array {
     $body = file_get_contents($requestedFile);
     return ['200 OK', ['Content-Type' => fileMimeDetector($requestedFile, $contentTypes)], $body];
 };
 
-$handleNotFoundResponse = function () use ($webDir) {
+$handleNotFoundResponse = function (): array {
     $body = '<!DOCTYPE html><html dir="rtl" lang="fa"><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1.0" name="viewport"><meta content="ie=edge" http-equiv="X-UA-Compatible"><title>پیدا نشد</title></head><body><p>فایل پیدا نشد</p></body></html>';
     return [
         '404 Not Found',
@@ -91,46 +88,28 @@ while ($client = socket_accept($sock)) {
     while (!str_ends_with($request, "\r\n\r\n")) {
         $request .= socket_read($client, 1024);
     }
-    $parsedData = explode("\r", $request);
-    $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
-    if (!is_file($webDir . $path)) {
-        list($code, $headers, $body) = $handleNotFoundResponse();
-        $headers += $defaultHeaders;
-        if (!isset($headers['Content-Length'])) {
-            $headers['Content-Length'] = strlen($body);
-        }
-        $header = '';
-        foreach ($headers as $k => $v) {
-            $header .= $k . ': ' . $v . "\r\n";
-        }
-        socket_write(
-            $client,
-            implode("\r\n", array(
-                'HTTP/1.1 ' . $code,
-                $header,
-                $body
-            ))
-        );
-        socket_close($client);
-    } else {
-        list($code, $headers, $body) = $handleFileResponse($webDir . $path);
-        $headers += $defaultHeaders;
-        if (!isset($headers['Content-Length'])) {
-            $headers['Content-Length'] = strlen($body);
-        }
-        $header = '';
-        foreach ($headers as $k => $v) {
-            $header .= $k . ': ' . $v . "\r\n";
-        }
-        socket_write(
-            $client,
-            implode("\r\n", array(
-                'HTTP/1.1 ' . $code,
-                $header,
-                $body
-            ))
-        );
-        socket_close($client);
+    $requestHeadersArray = explode("\r", $request);
+    $uriRawPath = explode(" ", $requestHeadersArray[0])[1];
+    $requestedFilePath = parse_url($uriRawPath)['path'];
+    $isFileExist = is_file($webDir . $requestedFilePath);
+    match ($isFileExist) {
+        true => list($code, $headers, $body) = $handleFileResponse($webDir . $requestedFilePath),
+        false => list($code, $headers, $body) = $handleNotFoundResponse()
+    };
+    if (!isset($headers['Content-Length'])) {
+        $headers['Content-Length'] = strlen($body);
     }
-    cliLog($code . ' ' . $parsedData[0]);
+    $headers += $defaultHeaders;
+    $finalHeader = '';
+    foreach ($headers as $k => $v) {
+        $finalHeader .= $k . ': ' . $v . "\r\n";
+    }
+    $response = implode("\r\n", array(
+        'HTTP/1.1 ' . $code,
+        $finalHeader,
+        $body
+    ));
+    socket_write($client, $response);
+    socket_close($client);
+    cliLog($code . ' ' . $requestedFilePath);
 }
