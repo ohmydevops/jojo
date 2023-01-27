@@ -31,6 +31,7 @@ $contentTypes = [
     'flv' => 'video/x-flv',
     'mov' => 'video/quicktime',
     'mpg4' => 'video/mp4',
+    'json' => 'application/json'
 ];
 
 function fileMimeDetector(string $requestedFile, array $contentTypes): string
