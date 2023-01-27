@@ -21,7 +21,7 @@
 docker run --name jojo --init --rm \
           -v YOUR_WEB_DIR:/jojo \
           -p 80:8000 \
-          ohmydevops/jojo-server:v1
+          ohmydevops/jojo-server:v1.1.0
 ```
 
 به جای YOUR_WEB_DIR کافیه آدرس دایرکتوری وبسایت‌تون رو بزارید (ریشه وبسایت). مثلا اگر در دایرکتوری `/home/user/website` وبسایت استاتیک شما قرار دارد کافیه بدین صورت اجرا کنید:
@@ -29,7 +29,7 @@ docker run --name jojo --init --rm \
 docker run --name jojo --init --rm \
           -v /home/user/website:/jojo \
           -p 80:8000 \
-          ohmydevops/jojo-server:v1
+          ohmydevops/jojo-server:v1.1.0
 ```
 سپس میتونید با مرورگرتون وبسایت خودتون رو مشاهده کنید.
 
