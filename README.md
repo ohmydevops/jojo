@@ -55,10 +55,6 @@ Then, open your browser to view your website.
 
 - [x] Support [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format)  
 
-#### V4  
-
-- [ ] Support directory index  
-
-#### V5
+#### V4
 
 - [ ] Support Keep-alive  
