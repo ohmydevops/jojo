@@ -46,6 +46,26 @@ function logging(string $message): void
     echo "$message" . PHP_EOL;
 }
 
+function getHeaders(string $request): array
+{
+    return array_reduce(
+        explode("\r\n", trim($request)), 
+        function ($headers, $line) {
+            if (strpos($line, ": ") !== false) {
+                list($key, $value) = explode(": ", $line, 2);
+                $headers[strtolower($key)] = strtolower($value);
+            }
+            return $headers;
+        }, 
+        []
+    );    
+}
+
+function getFirstLineHTTP(string $request): string
+{
+    return explode("\r\n", trim($request))[0];
+}
+
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 if ($sock === false) {
     echo 'Failed to create socket : ' . socket_strerror(socket_last_error()) . PHP_EOL;
@@ -90,14 +110,17 @@ while ($client = socket_accept($sock)) {
     if ($pid === -1) {
         exit("Error forking...\n");
     } elseif ($pid === 0) {
-        $request = '';
         $date = date("d/M/Y:H:i:s O");
+        $request = '';
         while (!str_ends_with($request, "\r\n\r\n")) {
             $request .= socket_read($client, 1024);
+        }        
+        $requestHeaders = getHeaders($request);
+        $requestPath = parse_url(explode(" ", getFirstLineHTTP($request))[1])['path'];
+        if(isset($requestHeaders['connection']) && $requestHeaders['connection'] === "keep-alive") {
+            logging("keep is 1");
         }
-        $parsedData = explode("\r", $request);
-        $path = parse_url(explode(" ", $parsedData[0])[1])['path'];
-        if (!is_file($webDir . $path)) {
+        if (!is_file($webDir . $requestPath)) {
             list($code, $headers, $body) = $handleNotFoundResponse();
             $headers += $defaultHeaders;
             if (!isset($headers['Content-Length'])) {
@@ -116,7 +139,7 @@ while ($client = socket_accept($sock)) {
                 ))
             );
         } else {
-            list($code, $headers, $body) = $handleFileResponse($webDir . $path);
+            list($code, $headers, $body) = $handleFileResponse($webDir . $requestPath);
             $headers += $defaultHeaders;
             if (!isset($headers['Content-Length'])) {
                 $headers['Content-Length'] = strlen($body);
@@ -136,7 +159,7 @@ while ($client = socket_accept($sock)) {
         }
         socket_getpeername($client, $address);
         socket_close($client);
-        logging($address . ' - - ' . "[" . $date . "]" . ' ' . $parsedData[0] . ' ' . $code . ' ' . strlen($body));
+        logging($address . ' - - ' . "[" . $date . "]" . ' ' . getFirstLineHTTP($request) . ' ' . $code . ' ' . strlen($body));
         exit();
     } else {
         // prevent zombie proccess
