@@ -43,7 +43,8 @@ function fileMimeDetector(string $requestedFile, array $contentTypes): string
 
 function cliLog(string $message): void
 {
-    echo $message . PHP_EOL;
+    $timestamp = date('Y-m-d H:i:s');
+    echo "[$timestamp] $message" . PHP_EOL;
 }
 
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
