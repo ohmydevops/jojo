@@ -17,7 +17,7 @@ To run it in a Docker environment, simply use the following command:
 
 ```
 docker run --name joojoo --init --rm \
-          -v YOUR_WEB_DIR:/joojoo \
+          -v YOUR_WEB_DIR:/html \
           -p 80:8000 \
           ohmydevops/joojoo
 ```
@@ -27,7 +27,7 @@ For example, if your static website is located at `/home/user/website`, run:
 
 ```
 docker run --name joojoo --init --rm \
-          -v /home/user/website:/joojoo \
+          -v /home/user/website:/html \
           -p 80:8000 \
           ohmydevops/joojoo
 ```
