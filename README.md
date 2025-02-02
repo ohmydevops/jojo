@@ -49,7 +49,7 @@ Then, open your browser to view your website.
 
 #### V2  
 
-- [ ] Support concurrency
+- [x] Support concurrency
 
 #### V3  
 
