@@ -7,7 +7,7 @@ $interface = '0.0.0.0';
 $port = 8000;
 $webDir = empty(getenv('BASE_WEB_DIR')) ? __DIR__ : getenv('BASE_WEB_DIR');
 $defaultHeaders = [
-    'Server' => 'jojo'
+    'Server' => 'joojoo'
 ];
 // Properly configuring server MIME types:
 // https://developer.mozilla.org/en-US/docs/Learn/Server-side/Configuring_server_MIME_types

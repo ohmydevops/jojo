@@ -1,8 +1,8 @@
-# Jojo | جوجو
+# Joojoo | جوجو
 
 **A Tiny Web Server :baby_chick: for Small Tasks**
 
-## The Story Behind Jojo
+## The Story Behind joojoo
 
 The web server that serves the TP-Link TD-8811 modem settings in my room was called `micro_httpd`. Out of curiosity, I searched for it and found this [repository](https://github.com/socram8888/micro_httpd). The code caught my attention, and I thought it would be a great learning experience to build a simple web server from scratch—similar to `micro_httpd`—to explore new computer science concepts and share what I learn with others.
 
@@ -16,20 +16,20 @@ Since I primarily work with PHP these days, I decided to implement it first in P
 To run it in a Docker environment, simply use the following command:
 
 ```
-docker run --name jojo --init --rm \
-          -v YOUR_WEB_DIR:/jojo \
+docker run --name joojoo --init --rm \
+          -v YOUR_WEB_DIR:/joojoo \
           -p 80:8000 \
-          ohmydevops/jojo-server:v1.1.0
+          ohmydevops/joojoo
 ```
 
 Replace `YOUR_WEB_DIR` with the path to your website's root directory.  
 For example, if your static website is located at `/home/user/website`, run:
 
 ```
-docker run --name jojo --init --rm \
-          -v /home/user/website:/jojo \
+docker run --name joojoo --init --rm \
+          -v /home/user/website:/joojoo \
           -p 80:8000 \
-          ohmydevops/jojo-server:v1.1.0
+          ohmydevops/joojoo
 ```
 
 Then, open your browser to view your website.
