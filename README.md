@@ -53,7 +53,7 @@ Then, open your browser to view your website.
 
 #### V3  
 
-- [ ] Support [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format)  
+- [x] Support [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format)  
 
 #### V4  
 
