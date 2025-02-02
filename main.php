@@ -41,10 +41,9 @@ function fileMimeDetector(string $requestedFile, array $contentTypes): string
     return $contentTypes[$fileExtension];
 }
 
-function cliLog(string $message): void
+function logging(string $message): void
 {
-    $timestamp = date('Y-m-d H:i:s');
-    echo "[$timestamp] $message" . PHP_EOL;
+    echo "$message" . PHP_EOL;
 }
 
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -92,6 +91,7 @@ while ($client = socket_accept($sock)) {
         exit("Error forking...\n");
     } elseif ($pid === 0) {
         $request = '';
+        $date = date("d/M/Y:H:i:s O");
         while (!str_ends_with($request, "\r\n\r\n")) {
             $request .= socket_read($client, 1024);
         }
@@ -134,9 +134,9 @@ while ($client = socket_accept($sock)) {
                 ))
             );
         }
-        socket_close($client);        
-        $PID = (string)posix_getpid();
-        cliLog("[PID: " . $PID . '] ' . $code . ' ' . $parsedData[0]);
+        socket_getpeername($client, $address);
+        socket_close($client);
+        logging($address . ' - - ' . "[" . $date . "]" . ' ' . $parsedData[0] . ' ' . $code . ' ' . strlen($body));
         exit();
     } else {
         // prevent zombie proccess
