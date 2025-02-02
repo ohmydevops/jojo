@@ -1,8 +1,10 @@
 FROM php:8.0-cli-alpine
 
+RUN docker-php-ext-configure pcntl --enable-pcntl
 RUN docker-php-ext-install sockets
+RUN docker-php-ext-install pcntl
 
-ENV BASE_WEB_DIR "/joojoo/"
+ENV BASE_WEB_DIR "/html/"
 
 COPY main.php /joojoo
 RUN chmod +x /joojoo
