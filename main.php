@@ -74,7 +74,7 @@ $handleFileResponse = function (string $requestedFile) use ($contentTypes): arra
 };
 
 $handleNotFoundResponse = function (): array {
-    $body = '<!DOCTYPE html><html dir="rtl" lang="fa"><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1.0" name="viewport"><meta content="ie=edge" http-equiv="X-UA-Compatible"><title>پیدا نشد</title></head><body><p>فایل پیدا نشد</p></body></html>';
+    $body = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1.0" name="viewport"><meta content="ie=edge" http-equiv="X-UA-Compatible"><title>Not founded</title></head><body><p>File or directory not founded.</p></body></html>';
     return [
         '404 Not Found',
         ['Content-Type' => 'text/html'],
