@@ -1,17 +1,21 @@
-#!/usr/bin/php
+#!/usr/bin/env php
 <?php
 
 declare(strict_types=1);
 
 $interface = '0.0.0.0';
 $port = 8000;
-$webDir = empty(getenv('BASE_WEB_DIR')) ? __DIR__ : getenv('BASE_WEB_DIR');
-$defaultHeaders = [
-    'Server' => 'joojoo'
+$worker_count = get_processor_cores_number();
+$workers = [];
+
+$web_dir = empty(getenv('BASE_WEB_DIR')) ? __DIR__ : getenv('BASE_WEB_DIR');
+$default_headers = [
+    'Server' => 'joojoo',
+    'Connection' => 'Keep-alive'
 ];
-// Properly configuring server MIME types:
-// https://developer.mozilla.org/en-US/docs/Learn/Server-side/Configuring_server_MIME_types
-$contentTypes = [
+
+// MIME types
+$content_types = [
     'html' => 'text/html;charset=utf-8',
     'css' => 'text/css',
     'js' => 'text/javascript',
@@ -35,10 +39,10 @@ $contentTypes = [
     'apk'  => 'application/vnd.android.package-archive'
 ];
 
-function fileMimeDetector(string $requestedFile, array $contentTypes): string
+function file_mime_detector(string $requested_file, array $content_types): string
 {
-    $fileExtension = pathinfo($requestedFile, PATHINFO_EXTENSION);
-    return $contentTypes[$fileExtension];
+    $file_extension = pathinfo($requested_file, PATHINFO_EXTENSION);
+    return $content_types[$file_extension] ?? 'application/octet-stream'; // Default MIME type
 }
 
 function logging(string $message): void
@@ -46,123 +50,155 @@ function logging(string $message): void
     echo "$message" . PHP_EOL;
 }
 
-function getHeaders(string $request): array
+function get_headers_from_request(string $request): array
 {
     return array_reduce(
-        explode("\r\n", trim($request)), 
+        explode("\r\n", trim($request)),
         function ($headers, $line) {
             if (strpos($line, ": ") !== false) {
                 list($key, $value) = explode(": ", $line, 2);
                 $headers[strtolower($key)] = strtolower($value);
             }
             return $headers;
-        }, 
+        },
         []
-    );    
+    );
 }
 
-function getFirstLineHTTP(string $request): string
+function get_first_line_http(string $request): string
 {
     return explode("\r\n", trim($request))[0];
 }
 
+function handle_file_response(string $requested_file, array $content_types): array
+{
+    if (!is_readable($requested_file)) {
+        return handle_not_found_response();
+    }
+    $body = file_get_contents($requested_file);
+    return ['200', ['Content-Type' => file_mime_detector($requested_file, $content_types)], $body];
+}
+
+function handle_not_found_response(): array
+{
+    $body = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1.0" name="viewport"><meta content="ie=edge" http-equiv="X-UA-Compatible"><title>Not founded</title></head><body><p>File or directory not founded.</p></body></html>';
+    return [
+        '404',
+        ['Content-Type' => 'text/html'],
+        $body
+    ];
+}
+
+function handle_error(string $message, $client_socket): void
+{
+    logging("Error: $message");
+    socket_close($client_socket);
+}
+
 $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 if ($sock === false) {
-    echo 'Failed to create socket : ' . socket_strerror(socket_last_error()) . PHP_EOL;
+    $error = socket_strerror(socket_last_error());
+    logging('Failed to create socket: ' . $error);
     exit();
 }
 
 if (!socket_set_option($sock, SOL_SOCKET, SO_REUSEADDR, 1)) {
-    echo 'Unable to set option on socket: ' . socket_strerror(socket_last_error()) . PHP_EOL;
-}
-
-$isBind = socket_bind($sock, $interface, $port);
-if ($isBind === false) {
-    echo 'Failed to bind socket : ', socket_strerror(socket_last_error()), PHP_EOL;
+    $error = socket_strerror(socket_last_error());
+    logging('Unable to set option on socket: ' . $error);
     exit();
 }
 
-$isListen = socket_listen($sock, SOMAXCONN);
-if ($isListen === false) {
-    echo 'Failed to listen to socket : ', socket_strerror(socket_last_error()), PHP_EOL;
+function get_processor_cores_number(): int
+{
+    return (int) shell_exec('nproc');
+}
+
+$is_bind = socket_bind($sock, $interface, $port);
+if ($is_bind === false) {
+    $error = socket_strerror(socket_last_error());
+    logging('Failed to bind socket: ' . $error);
     exit();
 }
 
-$handleFileResponse = function (string $requestedFile) use ($contentTypes): array {
-    $body = file_get_contents($requestedFile);
-    return ['200 OK', ['Content-Type' => fileMimeDetector($requestedFile, $contentTypes)], $body];
-};
+$is_listen = socket_listen($sock, SOMAXCONN);
+if ($is_listen === false) {
+    $error = socket_strerror(socket_last_error());
+    logging('Failed to listen to socket: ' . $error);
+    exit();
+}
 
-$handleNotFoundResponse = function (): array {
-    $body = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta content="width=device-width,initial-scale=1.0" name="viewport"><meta content="ie=edge" http-equiv="X-UA-Compatible"><title>Not founded</title></head><body><p>File or directory not founded.</p></body></html>';
-    return [
-        '404 Not Found',
-        ['Content-Type' => 'text/html'],
-        $body
-    ];
-};
+// socket_set_nonblock($sock);
 
-$parentPID = (string)posix_getpid();
-echo "Server is running on $interface:$port and PID: $parentPID" . PHP_EOL;
-
-while ($client = socket_accept($sock)) {
-    $pid = pcntl_fork();
-    if ($pid === -1) {
-        exit("Error forking...\n");
-    } elseif ($pid === 0) {
-        $date = date("d/M/Y:H:i:s O");
+function worker_process(Socket $socket, string $web_dir, array $content_types)
+{
+    while ($client = socket_accept($socket)) {
         $request = '';
         while (!str_ends_with($request, "\r\n\r\n")) {
-            $request .= socket_read($client, 1024);
-        }        
-        $requestHeaders = getHeaders($request);
-        $requestPath = parse_url(explode(" ", getFirstLineHTTP($request))[1])['path'];
-        if(isset($requestHeaders['connection']) && $requestHeaders['connection'] === "keep-alive") {
-            logging("keep is 1");
+            $data = socket_read($client, 1024);
+            if ($data === false) {
+                $error = socket_strerror(socket_last_error($client));
+                handle_error("Error reading from socket: $error", $client);
+                break;
+            }
+            $request .= $data;
         }
-        if (!is_file($webDir . $requestPath)) {
-            list($code, $headers, $body) = $handleNotFoundResponse();
-            $headers += $defaultHeaders;
-            if (!isset($headers['Content-Length'])) {
-                $headers['Content-Length'] = strlen($body);
-            }
-            $header = '';
-            foreach ($headers as $k => $v) {
-                $header .= $k . ': ' . $v . "\r\n";
-            }
-            socket_write(
-                $client,
-                implode("\r\n", array(
-                    'HTTP/1.1 ' . $code,
-                    $header,
-                    $body
-                ))
-            );
+
+        if (empty($request)) {
+            continue;
+        }
+
+        // $request_headers = get_headers_from_request($request);
+        $request_path = parse_url(explode(" ", get_first_line_http($request))[1])['path'];
+
+        if (!is_file($web_dir . $request_path)) {
+            list($code, $headers, $body) = handle_not_found_response();
         } else {
-            list($code, $headers, $body) = $handleFileResponse($webDir . $requestPath);
-            $headers += $defaultHeaders;
-            if (!isset($headers['Content-Length'])) {
-                $headers['Content-Length'] = strlen($body);
-            }
-            $header = '';
-            foreach ($headers as $k => $v) {
-                $header .= $k . ': ' . $v . "\r\n";
-            }
-            socket_write(
-                $client,
-                implode("\r\n", array(
-                    'HTTP/1.1 ' . $code,
-                    $header,
-                    $body
-                ))
-            );
+            list($code, $headers, $body) = handle_file_response($web_dir . $request_path, $content_types);
         }
+
+        if (!isset($headers['Content-Length'])) {
+            $headers['Content-Length'] = strlen($body);
+        }
+
+        $header = '';
+        foreach ($headers as $k => $v) {
+            $header .= $k . ': ' . $v . "\r\n";
+        }
+        $response = implode("\r\n", array(
+            'HTTP/1.1 ' . $code,
+            $header,
+            $body
+        ));
+
+        $bytes_written = socket_write($client, $response);
+        if ($bytes_written === false) {
+            $error = socket_strerror(socket_last_error($client));
+            handle_error("Error writing to socket: $error", $client);
+        }
+
         socket_getpeername($client, $address);
         socket_close($client);
-        logging($address . ' - - ' . "[" . $date . "]" . ' ' . getFirstLineHTTP($request) . ' ' . $code . ' ' . strlen($body));
-        exit();
-    } else {
-        // prevent zombie proccess
-        $pid = pcntl_wait($status, WNOHANG);
+        logging($address . ' - - ' . "[" . date("d/M/Y:H:i:s O") . "]" . ' ' . get_first_line_http($request) . ' ' . $code . ' ' . strlen($body));
     }
+}
+
+
+for ($i = 0; $i < $worker_count; $i++) {
+    $pid = pcntl_fork();
+    if ($pid === -1) {
+        logging("Failed to fork the process");
+        exit();
+    } elseif ($pid) {
+        $workers[] = $pid;
+    } else {
+        worker_process($sock, $web_dir, $content_types);
+        exit(0);
+    }
+}
+
+echo "🚀 Server is running on $interface:$port with $worker_count workers." . PHP_EOL;
+print_r($workers);
+
+foreach ($workers as $worker_pid) {
+    pcntl_waitpid($worker_pid, $status);
 }
