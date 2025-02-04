@@ -197,7 +197,6 @@ for ($i = 0; $i < $worker_count; $i++) {
 }
 
 echo "🚀 Server is running on $interface:$port with $worker_count workers." . PHP_EOL;
-print_r($workers);
 
 foreach ($workers as $worker_pid) {
     pcntl_waitpid($worker_pid, $status);
