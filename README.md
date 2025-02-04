@@ -36,8 +36,6 @@ Then, open your browser to view your website.
 
 ## Roadmap  
 
-#### V1  
-
 - [x] Serve basic web files (HTML, CSS, JS)  
 - [x] Serve basic static files (images, videos, sounds)  
 - [x] Support 200 status code  
@@ -46,15 +44,7 @@ Then, open your browser to view your website.
 - [x] Handle requests in blocking mode  
 - [x] Dockerized (uploaded to Docker Hub)  
 - [x] Configurable root directory via ENV  
-
-#### V2  
-
-- [x] Support concurrency
-
-#### V3  
-
+- [x] Support concurrency  
 - [x] Support [Common Log Format](https://en.wikipedia.org/wiki/Common_Log_Format)  
-
-#### V4
-
-- [ ] Support Keep-alive  
+- [x] Use simple worker-mode for handle requests [Prefork in Apache](https://httpd.apache.org/docs/2.4/mod/prefork.html)
+- [ ] Support Keep-alive header  
