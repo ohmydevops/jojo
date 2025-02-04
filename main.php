@@ -3,9 +3,9 @@
 
 declare(strict_types=1);
 
-$interface = '0.0.0.0';
-$port = 8000;
-$worker_count = get_processor_cores_number();
+define('HOST', '0.0.0.0');
+define('PORT', 8000);
+define('WORKER_COUNT', get_processor_cores_number());
 $workers = [];
 
 $web_dir = empty(getenv('BASE_WEB_DIR')) ? __DIR__ : getenv('BASE_WEB_DIR');
@@ -113,7 +113,7 @@ function get_processor_cores_number(): int
     return (int) shell_exec('nproc');
 }
 
-$is_bind = socket_bind($sock, $interface, $port);
+$is_bind = socket_bind($sock, HOST, PORT);
 if ($is_bind === false) {
     $error = socket_strerror(socket_last_error());
     logging('Failed to bind socket: ' . $error);
@@ -182,8 +182,7 @@ function worker_process(Socket $socket, string $web_dir, array $content_types)
     }
 }
 
-
-for ($i = 0; $i < $worker_count; $i++) {
+for ($i = 0; $i < WORKER_COUNT; $i++) {
     $pid = pcntl_fork();
     if ($pid === -1) {
         logging("Failed to fork the process");
@@ -196,7 +195,7 @@ for ($i = 0; $i < $worker_count; $i++) {
     }
 }
 
-echo "🚀 Server is running on $interface:$port with $worker_count workers." . PHP_EOL;
+echo "🚀 Server is running on " . HOST . ":" . PORT . " with " . WORKER_COUNT . " workers." . PHP_EOL;
 
 foreach ($workers as $worker_pid) {
     pcntl_waitpid($worker_pid, $status);
